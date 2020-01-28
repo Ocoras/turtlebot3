@@ -23,7 +23,7 @@
 #
 # from geometry_msgs.msg import Twist
 # from rclpy.node import Node
-# from rclpy.qos import QoSProfile
+from rclpy.qos import QoSProfile
 from nav_msgs.msg import Odometry
 from datetime import datetime, timezone
 
@@ -61,7 +61,7 @@ class Turtlebot3Logger(Turtlebot3PositionControl):
         # """************************************************************
         # ** Initialise ROS publishers and subscribers
         # ************************************************************"""
-        # # qos = QoSProfile(depth=10)
+        qos = QoSProfile(depth=10)
         # #
         # # # Initialise publishers
         # # self.cmd_vel_pub = self.create_publisher(Twist, "cmd_vel", qos)
