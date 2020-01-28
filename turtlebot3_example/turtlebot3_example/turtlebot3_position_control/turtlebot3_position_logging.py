@@ -47,13 +47,15 @@ class Turtlebot3Logger(Turtlebot3PositionControl):
         super().__init__()
         dt = datetime.now(timezone.utc)
         self.logging_file = open(
-            "Turtlebot_position_log-{}-{}-{}-{}:{}".format(
+            "Turtlebot_position_log-{}-{}-{}-{}:{}.csv".format(
                 dt.year, dt.month, dt.day, dt.hour, dt.minute
             ),
             "w",
         )
 
-        self.logging_file.write("Hour, Minute, Second, Microsecond, x, y, Theta,\n")
+        self.logging_file.write(
+            "Hour, Minute, Second, Microsecond, x(m), y(m), Theta(rad),\n"
+        )
         # dt.hour,
         # dt.minute,
         # dt.second,
