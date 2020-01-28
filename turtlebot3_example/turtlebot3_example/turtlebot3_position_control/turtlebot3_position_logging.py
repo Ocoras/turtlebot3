@@ -53,7 +53,7 @@ class Turtlebot3Logger(Turtlebot3PositionControl):
             "w",
         )
 
-        self.logging_file.write("Hour, Minute, Second, Microsecond, x, y, Theta")
+        self.logging_file.write("Hour, Minute, Second, Microsecond, x, y, Theta,\n")
         # dt.hour,
         # dt.minute,
         # dt.second,
@@ -90,7 +90,7 @@ class Turtlebot3Logger(Turtlebot3PositionControl):
         )
         dt = datetime.now(timezone.utc)
         self.logging_file.write(
-            "{},{},{},{},{},{},{}".format(
+            "{},{},{},{},{},{},{},\n".format(
                 dt.hour,
                 dt.minute,
                 dt.second,
