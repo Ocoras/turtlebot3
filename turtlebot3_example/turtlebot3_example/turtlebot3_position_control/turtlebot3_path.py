@@ -21,8 +21,7 @@ import math
 from geometry_msgs.msg import Twist
 
 
-class Turtlebot3Path():
-
+class Turtlebot3Path:
     def turn(angle, angular_velocity, step):
         twist = Twist()
 
@@ -33,7 +32,7 @@ class Turtlebot3Path():
                 twist.angular.z = angular_velocity
             elif 0 > angle and angle >= -math.pi:
                 twist.angular.z = -angular_velocity
-            elif angle > -math.pi:
+            elif angle < -math.pi:
                 twist.angular.z = angular_velocity
         else:
             step += 1

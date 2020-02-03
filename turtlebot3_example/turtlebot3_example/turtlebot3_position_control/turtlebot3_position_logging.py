@@ -26,6 +26,7 @@
 from rclpy.qos import QoSProfile
 from nav_msgs.msg import Odometry
 from datetime import datetime, timezone
+import numpy as np
 
 from turtlebot3_example.turtlebot3_position_control.turtlebot3_position_control import (
     Turtlebot3PositionControl,
@@ -56,27 +57,15 @@ class Turtlebot3Logger(Turtlebot3PositionControl):
         self.logging_file.write(
             "Hour, Minute, Second, Microsecond, x(m), y(m), Theta(rad),\n"
         )
-        # dt.hour,
-        # dt.minute,
-        # dt.second,
-        # dt.microsecond,
-        # """************************************************************
-        # ** Initialise ROS publishers and subscribers
-        # ************************************************************"""
-        qos = QoSProfile(depth=10)
-        # #
-        # # # Initialise publishers
-        # # self.cmd_vel_pub = self.create_publisher(Twist, "cmd_vel", qos)
-        # #
-        # Initialise subscribers
-        self.odom_sub = self.create_subscription(
-            Odometry, "odom", self.odom_callback, qos
-        )
-        #
-        # """************************************************************
-        # ** Initialise timers
-        # ************************************************************"""
-        # # self.update_timer = self.create_timer(0.010, self.update_callback)  # unit: s
+        self.test_positions = [
+            (1.0, 0.0, 0.0),
+            (0.0, 1.0, 90.0),
+            (-1.0, 0.0, 90.0),
+            (0.0, -1.0, -180.0),
+        ]
+        self.test_pos_theta_rad = False
+        self.test_pos_loop = False
+        self.test_pos_index = 0
 
         self.get_logger().info("Turtlebot3 logging control node has been initialised.")
 
@@ -103,6 +92,36 @@ class Turtlebot3Logger(Turtlebot3PositionControl):
             )
         )
         self.init_odom_state = True
+
+    def get_key(self):
+        """Overwriting the get_key command to provide """
+        if self.test_pos_index >= len(self.test_positions):
+            if self.test_pos_loop:
+                test_pos_index = 0
+            else:
+                print("Reached end of test positions, do you want to loop? ")
+                t = input("(y/n)")
+                if t == "y":
+                    self.test_pos_index = 0
+                else:
+                    return 0.0, 0.0, 0.0
+
+        test_pos = self.test_positions[self.test_pos_index]
+
+        if not self.test_pos_theta_rad:
+            theta = np.deg2rad(test_pos[2])
+        else:
+            theta = test_pos[2]
+
+        # Write target position to file using zero timestamp to differentiate from logged positions
+        self.logging_file.write(
+            "{},{},{},{},{},{},{},\n".format(
+                00, 00, 00, 00, test_pos[0], test_pos[1], theta
+            )
+        )
+
+        self.test_pos_index += 1
+        return test_pos[0], test_pos[1], theta
 
     # def update_callback(self):
     #     if self.init_odom_state is True:
