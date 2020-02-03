@@ -157,7 +157,7 @@ class Turtlebot3PositionControl(Node):
             elif self.step == 4:
                 self.step = 1
                 self.get_key_state = False
-            print(self.step)
+            # print(self.step)
             self.cmd_vel_pub.publish(twist)
 
     def get_key(self):
