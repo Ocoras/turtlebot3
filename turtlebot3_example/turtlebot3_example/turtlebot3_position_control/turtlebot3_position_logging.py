@@ -54,9 +54,7 @@ class Turtlebot3Logger(Turtlebot3PositionControl):
             "w",
         )
 
-        self.logging_file.write(
-            "Hour, Minute, Second, Microsecond, x(m), y(m), Theta(rad),\n"
-        )
+        self.logging_file.write("Timestamp,x(m),y(m),Theta(rad),\n")
         self.test_positions = [
             (1.0, 0.0, 0.0),
             (0.0, 1.0, 90.0),
@@ -80,12 +78,20 @@ class Turtlebot3Logger(Turtlebot3PositionControl):
             msg.pose.pose.orientation
         )
         dt = datetime.now(timezone.utc)
+        # self.logging_file.write(
+        #     "{},{},{},{},{},{},{},\n".format(
+        #         dt.hour,
+        #         dt.minute,
+        #         dt.second,
+        #         dt.microsecond,
+        #         self.last_pose_x,
+        #         self.last_pose_y,
+        #         self.last_pose_theta,
+        #     )
+        # )
         self.logging_file.write(
-            "{},{},{},{},{},{},{},\n".format(
-                dt.hour,
-                dt.minute,
-                dt.second,
-                dt.microsecond,
+            "{},{},{},{},\n".format(
+                dt.isoformat(),
                 self.last_pose_x,
                 self.last_pose_y,
                 self.last_pose_theta,
@@ -115,9 +121,7 @@ class Turtlebot3Logger(Turtlebot3PositionControl):
 
         # Write target position to file using zero timestamp to differentiate from logged positions
         self.logging_file.write(
-            "{},{},{},{},{},{},{},\n".format(
-                00, 00, 00, 00, test_pos[0], test_pos[1], theta
-            )
+            "{},{},{},{},\n".format(0, test_pos[0], test_pos[1], theta)
         )
 
         self.test_pos_index += 1
