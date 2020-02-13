@@ -19,16 +19,17 @@
 import rclpy
 
 from turtlebot3_example.turtlebot3_position_control.turtlebot3_position_logging import (
-    Turtlebot3Logger,
+    Turtlebot3MoveAndLog,
+    TurtleBot3PositionLogger,
 )
 
 
 def main(args=None):
     rclpy.init(args=args)
-    turtlebot3_position_control = Turtlebot3Logger()
-    rclpy.spin(turtlebot3_position_control)
-
-    turtlebot3_position_control.destroy_node()
+    turtlebot3_logging = TurtleBot3PositionLogger()
+    rclpy.spin(turtlebot3_logging)
+    turtlebot3_logging.close_logging_file()
+    turtlebot3_logging.destroy_node()
     rclpy.shutdown()
 
 

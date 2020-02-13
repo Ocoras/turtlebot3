@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 
 year = 2020
 month = 2
-day = 3
-time = [17, 7]
-
+day = 13
+# time = [12, 23]
+time = [14, 29]
 
 data = pd.read_csv(
     "../../../Turtlebot_position_log-{}-{}-{}-{}:{}.csv".format(
@@ -16,7 +16,7 @@ data = pd.read_csv(
     header=0,
     parse_dates=[0],
     infer_datetime_format=True,
-    skiprows=[6, 210],  # Need to handle rows from previous iterations that are too long
+    # skiprows=[6, 210],  # Need to handle rows from previous iterations that are too long
 )
 print(data.head())
 
@@ -29,9 +29,13 @@ plt.title(
         *time, day, month, year
     )
 )
-plt.plot(data[" x(m)"], data[" y(m)"])
+plt.plot(data["x(m)"], data["y(m)"])
 plt.ylabel("y(m)")
 plt.xlabel("x(m)")
+
+data["Timestep"] = data["Timestamp"] - data["Timestamp"].shift(-1)
+
+
 plt.show()
 
 # class dataPoint:

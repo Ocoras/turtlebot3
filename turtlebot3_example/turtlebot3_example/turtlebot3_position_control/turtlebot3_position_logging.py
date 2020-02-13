@@ -21,8 +21,8 @@
 # import sys
 # import termios
 #
-# from geometry_msgs.msg import Twist
-# from rclpy.node import Node
+from geometry_msgs.msg import Twist
+from rclpy.node import Node
 from rclpy.qos import QoSProfile
 from nav_msgs.msg import Odometry
 from datetime import datetime, timezone
@@ -43,7 +43,251 @@ theta: goal orientation (range: -180 ~ 180, unit: deg)
 """
 
 
-class Turtlebot3Logger(Turtlebot3PositionControl):
+class TurtleBot3PositionLogger(Node):
+    def __init__(self):
+        super().__init__("turtlebot3_position_logger")
+        dt = datetime.now(timezone.utc)
+        self.logging_file = open(
+            "Turtlebot_position_log-{}-{}-{}-{}:{}.csv".format(
+                dt.year, dt.month, dt.day, dt.hour, dt.minute
+            ),
+            "w",
+        )
+        self.logging_file.write("Timestamp,x(m),y(m),Theta(rad),\n")
+        """************************************************************
+        ** Initialise variables
+        ************************************************************"""
+        self.odom = Odometry()
+
+        self.init_odom_state = False  # To get the initial pose at the beginning
+
+        """************************************************************
+        ** Initialise ROS subscriber
+        ************************************************************"""
+        qos = QoSProfile(depth=10)
+        # Initialise subscribers
+        self.odom_sub = self.create_subscription(
+            Odometry, "odom", self.odom_callback, qos
+        )
+        self.get_logger().info("Turtlebot3 logging node has been initialised.")
+
+    """*******************************************************************************
+    ** Callback functions and relevant functions
+    *******************************************************************************"""
+
+    def odom_callback(self, msg):
+        self.last_pose_x = msg.pose.pose.position.x
+        self.last_pose_y = msg.pose.pose.position.y
+        _, _, self.last_pose_theta = self.euler_from_quaternion(
+            msg.pose.pose.orientation
+        )
+        dt = datetime.now(timezone.utc)
+        self.logging_file.write(
+            "{},{},{},{},\n".format(
+                dt.isoformat(),
+                self.last_pose_x,
+                self.last_pose_y,
+                self.last_pose_theta,
+            )
+        )
+        print("Currently at x: {}, y: {}".format(self.last_pose_x, self.last_pose_y))
+        self.init_odom_state = True
+
+    def close_logging_file(self):
+        self.logging_file.close()
+
+    """*******************************************************************************
+    ** Below should be replaced when porting for ROS 2 Python tf_conversions is done.
+    *******************************************************************************"""
+
+    def euler_from_quaternion(self, quat):
+        """
+        Converts quaternion (w in last place) to euler roll, pitch, yaw
+        quat = [x, y, z, w]
+        """
+        x = quat.x
+        y = quat.y
+        z = quat.z
+        w = quat.w
+
+        sinr_cosp = 2 * (w * x + y * z)
+        cosr_cosp = 1 - 2 * (x * x + y * y)
+        roll = np.arctan2(sinr_cosp, cosr_cosp)
+
+        sinp = 2 * (w * y - z * x)
+        pitch = np.arcsin(sinp)
+
+        siny_cosp = 2 * (w * z + x * y)
+        cosy_cosp = 1 - 2 * (y * y + z * z)
+        yaw = np.arctan2(siny_cosp, cosy_cosp)
+
+        return roll, pitch, yaw
+
+
+class Turtlebot3RFMeasurement(Node):
+    def __init__(self):
+        super().__init__("turtlebot3_rf_measurement")
+
+        """************************************************************
+        ** Initialise variables
+        ************************************************************"""
+        self.odom = Odometry()
+        self.last_pose_x = 0.0
+        self.last_pose_y = 0.0
+        self.last_pose_theta = 0.0
+        self.goal_pose_x = 0.0
+        self.goal_pose_y = 0.0
+        self.goal_pose_theta = 0.0
+        self.step = 1
+        self.get_key_state = False
+        self.init_odom_state = False  # To get the initial pose at the beginning
+
+        """************************************************************
+        ** Initialise ROS publishers and subscribers
+        ************************************************************"""
+        qos = QoSProfile(depth=10)
+
+        # Initialise publishers
+        self.cmd_vel_pub = self.create_publisher(Twist, "cmd_vel", qos)
+
+        # Initialise subscribers
+        self.odom_sub = self.create_subscription(
+            Odometry, "odom", self.odom_callback, qos
+        )
+
+        """************************************************************
+        ** Initialise timers
+        ************************************************************"""
+        self.update_timer = self.create_timer(0.010, self.update_callback)  # unit: s
+
+        self.get_logger().info("Turtlebot3 position control node has been initialised.")
+
+    """*******************************************************************************
+    ** Callback functions and relevant functions
+    *******************************************************************************"""
+
+    def odom_callback(self, msg):
+        self.last_pose_x = msg.pose.pose.position.x
+        self.last_pose_y = msg.pose.pose.position.y
+        _, _, self.last_pose_theta = self.euler_from_quaternion(
+            msg.pose.pose.orientation
+        )
+
+        self.init_odom_state = True
+
+    def update_callback(self):
+        if self.init_odom_state is True:
+            self.generate_path()
+
+    def generate_path(self):
+        twist = Twist()
+
+        if self.get_key_state is False:
+            input_x, input_y, input_theta = self.get_key()
+            self.goal_pose_x = self.last_pose_x + input_x
+            self.goal_pose_y = self.last_pose_y + input_y
+            self.goal_pose_theta = self.last_pose_theta + input_theta
+            self.get_key_state = True
+
+        else:
+            # Step 1: Turn
+            if self.step == 1:
+                # replacing math.atan2 with numpy implementation
+                path_theta = numpy.arctan2(
+                    self.goal_pose_y - self.last_pose_y,
+                    self.goal_pose_x - self.last_pose_x,
+                )
+                angle = path_theta - self.last_pose_theta
+                # print(
+                #     "Turning to angle: {} from {}".format(angle, self.last_pose_theta)
+                # )
+                # print(
+                #     "Last pose: x: {} y: {}, New pose: x:{}, y:{}".format(
+                #         self.last_pose_x,
+                #         self.last_pose_y,
+                #         self.goal_pose_x,
+                #         self.goal_pose_y,
+                #     )
+                # )
+                angular_velocity = 0.1  # unit: rad/s
+
+                twist, self.step = Turtlebot3Path.turn(
+                    angle, angular_velocity, self.step
+                )
+
+            # Step 2: Go Straight
+            elif self.step == 2:
+                distance = math.sqrt(
+                    (self.goal_pose_x - self.last_pose_x) ** 2
+                    + (self.goal_pose_y - self.last_pose_y) ** 2
+                )
+                linear_velocity = 0.1  # unit: m/s
+
+                twist, self.step = Turtlebot3Path.go_straight(
+                    distance, linear_velocity, self.step
+                )
+
+            # Step 3: Turn
+            elif self.step == 3:
+                angle = self.goal_pose_theta - self.last_pose_theta
+                angular_velocity = 0.1  # unit: rad/s
+
+                twist, self.step = Turtlebot3Path.turn(
+                    angle, angular_velocity, self.step
+                )
+
+            # Reset
+            elif self.step == 4:
+                self.step = 1
+                self.get_key_state = False
+            # print(self.step)
+            self.cmd_vel_pub.publish(twist)
+
+    def get_key(self):
+        # Print terminal message and get inputs
+        print(terminal_msg)
+        input_x = float(input("Input x: "))
+        input_y = float(input("Input y: "))
+        input_theta = float(input("Input theta: "))
+        while input_theta > 180 or input_theta < -180:
+            self.get_logger().info("Enter a value for theta between -180 and 180")
+            input_theta = input("Input theta: ")
+        input_theta = numpy.deg2rad(input_theta)  # Convert [deg] to [rad]
+
+        settings = termios.tcgetattr(sys.stdin)
+        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
+
+        return input_x, input_y, input_theta
+
+    """*******************************************************************************
+    ** Below should be replaced when porting for ROS 2 Python tf_conversions is done.
+    *******************************************************************************"""
+
+    def euler_from_quaternion(self, quat):
+        """
+        Converts quaternion (w in last place) to euler roll, pitch, yaw
+        quat = [x, y, z, w]
+        """
+        x = quat.x
+        y = quat.y
+        z = quat.z
+        w = quat.w
+
+        sinr_cosp = 2 * (w * x + y * z)
+        cosr_cosp = 1 - 2 * (x * x + y * y)
+        roll = numpy.arctan2(sinr_cosp, cosr_cosp)
+
+        sinp = 2 * (w * y - z * x)
+        pitch = numpy.arcsin(sinp)
+
+        siny_cosp = 2 * (w * z + x * y)
+        cosy_cosp = 1 - 2 * (y * y + z * z)
+        yaw = numpy.arctan2(siny_cosp, cosy_cosp)
+
+        return roll, pitch, yaw
+
+
+class Turtlebot3MoveAndLog(Turtlebot3PositionControl):
     def __init__(self):
         super().__init__()
         dt = datetime.now(timezone.utc)
@@ -78,17 +322,6 @@ class Turtlebot3Logger(Turtlebot3PositionControl):
             msg.pose.pose.orientation
         )
         dt = datetime.now(timezone.utc)
-        # self.logging_file.write(
-        #     "{},{},{},{},{},{},{},\n".format(
-        #         dt.hour,
-        #         dt.minute,
-        #         dt.second,
-        #         dt.microsecond,
-        #         self.last_pose_x,
-        #         self.last_pose_y,
-        #         self.last_pose_theta,
-        #     )
-        # )
         self.logging_file.write(
             "{},{},{},{},\n".format(
                 dt.isoformat(),
@@ -126,59 +359,3 @@ class Turtlebot3Logger(Turtlebot3PositionControl):
 
         self.test_pos_index += 1
         return test_pos[0], test_pos[1], theta
-
-    # def update_callback(self):
-    #     if self.init_odom_state is True:
-    #         self.generate_path()
-
-    # def generate_path(self):
-    #     twist = Twist()
-    #
-    #     if self.get_key_state is False:
-    #         input_x, input_y, input_theta = self.get_key()
-    #         self.goal_pose_x = self.last_pose_x + input_x
-    #         self.goal_pose_y = self.last_pose_y + input_y
-    #         self.goal_pose_theta = self.last_pose_theta + input_theta
-    #         self.get_key_state = True
-    #
-    #     else:
-    #         # Step 1: Turn
-    #         if self.step == 1:
-    #             path_theta = math.atan2(
-    #                 self.goal_pose_y - self.last_pose_y,
-    #                 self.goal_pose_x - self.last_pose_x,
-    #             )
-    #             angle = path_theta - self.last_pose_theta
-    #             angular_velocity = 0.1  # unit: rad/s
-    #
-    #             twist, self.step = Turtlebot3Path.turn(
-    #                 angle, angular_velocity, self.step
-    #             )
-    #
-    #         # Step 2: Go Straight
-    #         elif self.step == 2:
-    #             distance = math.sqrt(
-    #                 (self.goal_pose_x - self.last_pose_x) ** 2
-    #                 + (self.goal_pose_y - self.last_pose_y) ** 2
-    #             )
-    #             linear_velocity = 0.1  # unit: m/s
-    #
-    #             twist, self.step = Turtlebot3Path.go_straight(
-    #                 distance, linear_velocity, self.step
-    #             )
-    #
-    #         # Step 3: Turn
-    #         elif self.step == 3:
-    #             angle = self.goal_pose_theta - self.last_pose_theta
-    #             angular_velocity = 0.1  # unit: rad/s
-    #
-    #             twist, self.step = Turtlebot3Path.turn(
-    #                 angle, angular_velocity, self.step
-    #             )
-    #
-    #         # Reset
-    #         elif self.step == 4:
-    #             self.step = 1
-    #             self.get_key_state = False
-    #
-    #         self.cmd_vel_pub.publish(twist)
