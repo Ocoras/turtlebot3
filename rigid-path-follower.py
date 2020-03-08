@@ -63,15 +63,16 @@ def straight_to_point(current_position, target_position):
     target_bearing = np.arctan2(y_err, x_err)
     # print(np.rad2deg(target_bearing))
     theta_error = current_position.theta - target_bearing
+    # print(np.rad2deg(theta_error))
+    if abs(theta_error) > np.pi:
+        # Can turn in the other direction to get there faster
+        if theta_error >= 0:
+            # if theta was positive, make it negative now
+            theta_error = -(2 * np.pi - abs(theta_error))
+        else:
+            theta_error = 2 * np.pi - abs(theta_error)
 
-    # if abs(theta_error) > np.pi:
-    #     # Can turn in the other direction to get there faster
-    #     if theta_error >= 0:
-    #         # if theta was positive, make it negative now
-    #         theta_error = -(2 * np.pi - abs(theta_error))
-    #     else:
-    #         theta_error = 2 * np.pi - abs(theta_error)
-
+    # print(np.rad2deg(theta_error))
     # print("Theta error on bearing", np.rad2deg(theta_error))
     if abs(theta_error) < np.pi / 4:
         # keep heading forwards, adjusting angular velocity to keep straight.
@@ -83,7 +84,6 @@ def straight_to_point(current_position, target_position):
         velocity_target.x = 0.0
         velocity_target.z = angular_velocity_calculation(theta_error)
     else:
-        print("backwards")
         # Move backwards only if a short distance, otherwise turn around.
         if distance > 0.1:
             velocity_target.x = 0.0
@@ -119,16 +119,19 @@ def simulate_one_timestep(position, velocity, timestep):
     return position
 
 
+# start_pos = Point(-3.0, -3.0, 0.0)
+start_pos = Point(1.0, 1.0, 0.0)
+
 path_to_be_followed = [  # x, y, theta
-    Point(0.0, 0.0, 0.0),
-    Point(1.0, 0.0, 90.0),
-    Point(1.0, 1.0, 180.0),
+    # Point(0.0, 0.0, 0.0),
+    # Point(1.0, 0.0, 90.0),
+    # Point(1.0, 1.0, 180.0),
     Point(0.0, 1.0, -90.0),
 ]
 
 
 debug = True
-while_loop_limit = 5000
+while_loop_limit = 2000
 dt = 0.1
 
 
@@ -141,7 +144,6 @@ def print_data(pos, d, v):
         )
 
 
-start_pos = Point(-3.0, -3.0, 0.0)
 pos = deepcopy(start_pos)
 for d in path_to_be_followed:
     i = 0
@@ -168,5 +170,5 @@ for d in path_to_be_followed:
     if i == while_loop_limit:
         print("Maxed Out")
     # plt.figure()
-    plt.plot([p.x for p in travelled_points], [p.y for p in travelled_points], "-")
+    plt.plot([p.x for p in travelled_points], [p.y for p in travelled_points], "*")
 plt.show()
