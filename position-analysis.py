@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 year = 2020
 month = 2
 day = 13
-# time = [12, 23]
-time = [14, 29]
+time = [12, 23]
+# time = [14, 29]
 
 data = pd.read_csv(
     "../../../Turtlebot_position_log-{}-{}-{}-{}:{}.csv".format(
