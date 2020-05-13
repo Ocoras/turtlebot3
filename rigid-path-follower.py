@@ -123,9 +123,9 @@ def simulate_one_timestep(position, velocity, timestep):
 start_pos = Point(1.0, 1.0, 0.0)
 
 path_to_be_followed = [  # x, y, theta
-    # Point(0.0, 0.0, 0.0),
-    # Point(1.0, 0.0, 90.0),
-    # Point(1.0, 1.0, 180.0),
+    Point(0.0, 0.0, 0.0),
+    Point(1.0, 0.0, 90.0),
+    Point(1.0, 1.0, 180.0),
     Point(0.0, 1.0, -90.0),
 ]
 
