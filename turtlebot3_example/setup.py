@@ -42,6 +42,7 @@ setup(
             "turtlebot3_patrol_server = turtlebot3_example.turtlebot3_patrol_server.main:main",
             "turtlebot3_position_control = turtlebot3_example.turtlebot3_position_control.main:main",
             "turtlebot3_logger = turtlebot3_example.turtlebot3_position_control.logging:main",
+            "turtlebot3_path_follower = turtlebot3_example.turtlebot3_path_follower.main:main",
         ],
     },
 )
