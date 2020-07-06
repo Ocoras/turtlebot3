@@ -82,16 +82,17 @@ true_pos = start_pos
 reported_pos = start_pos
 simulation_accuracy = 0.1
 
-fig, ax = plt.subplots()
-ax.set_title("Robot Path Simulation")
+fig, ax = plt.subplots(figsize=[4, 4])
+
 ax.set_xlabel("x(m)")
 ax.set_xlim([-0.1, 1.1])
 ax.set_ylabel("y(m)")
 ax.set_ylim([-0.1, 1.1])
 ax.set_aspect("equal", "box")
 
-trajectory = []
 
+single_traj = []
+distance_travelled = 0
 for target in path_to_be_followed:
     i = 0
     travelled_points = [true_pos]
@@ -100,7 +101,9 @@ for target in path_to_be_followed:
         vel, target_reached = odom_callback(reported_pos, target)
         new_pos = simulate_one_timestep(true_pos, vel, dt)
         travelled_points.append(new_pos)
-
+        distance_travelled += np.sqrt(
+            (new_pos.x - true_pos.x) ** 2 + (new_pos.y - true_pos.y) ** 2
+        )
         # Introduce some error in position reporting!
         r = random()
         if r <= simulation_accuracy:
@@ -123,16 +126,21 @@ for target in path_to_be_followed:
         i += 1
     if i == while_loop_limit:
         print("Maxed out while")
-    trajectory.append(travelled_points)
-single_traj = []
-for t in trajectory:
-    single_traj += t
+    single_traj.extend(travelled_points)
+
+t = len(single_traj) * dt
+v = distance_travelled / t
+print("Length of Simulation = {}s".format(t))
+print(
+    "Distance Travelled = {:.2f}m, Avg speed= {:.2f}m/s".format(distance_travelled, v)
+)
+ax.set_title("Robot Path Simulation Taking {:.1f}s".format(t))
 ax.plot(
     [p.x for p in single_traj],
     [p.y for p in single_traj],
     markersize=0.5,
     color="tab:red",
-    label="Simulated Path",
+    label="Simulated Path = {:.2f}m".format(distance_travelled),
 )
 ax.plot(
     [a for a in [target.x for target in path_to_be_followed]],
@@ -144,9 +152,9 @@ ax.plot(
 )
 plt.legend()
 
-plt.savefig(
-    "/home/david/Documents/Cambridge/Master's Project/Final Report/img/noisypathsimlarge.png",
-    dpi=300,
-    bbox_inches="tight",
-)
+# plt.savefig(
+#     "/home/david/Documents/Cambridge/Master's Project/Final Report/img/noisypathsimfaster.png",
+#     dpi=300,
+#     bbox_inches="tight",
+# )
 plt.show()

@@ -13,18 +13,21 @@ plt.rc("font", **font)
 
 dim = 11
 spacing = 0.1
-offset_x = -0.3
+offset_x = -0.25
 offset_y = 0
+limit = (((dim - 1) * spacing) / 2) + spacing
 zero = Point()
 
 velocities = []
 hfont = {"fontname": "Helvetica"}
-fig, ax = plt.subplots()
-ax.set_title("Velocity at Relative Position from Target", **hfont)
+fig, ax = plt.subplots(figsize=[4, 3])
+ax.set_title("Linear Velocity at Relative Position ", **hfont)
 ax.set_xlabel("x(m)", **hfont)
-ax.set_xlim([-0.6 + offset_x, 0.6 + offset_x])
 ax.set_ylabel("y(m)", **hfont)
-ax.set_ylim([-0.6, 0.6])
+# ax.set_xlim([-limit + offset_x, limit + offset_x])
+# ax.set_ylim([-limit, limit])
+ax.set_xlim([-limit + offset_x, 0.1])
+ax.set_ylim([-0.35, 0.35])
 ax.set_aspect("equal", "box")
 
 for j in range(dim):
@@ -35,19 +38,34 @@ for j in range(dim):
         p = Point(x, y)
         v = straight_to_point(p, zero)
         # print(v.linear.x)
-        if abs(v.linear.x) > 0 or abs(v.angular.z) > 0:
+        if abs(v.linear.x) > 0:
+            # print(x, y)
             ax.arrow(
                 x,
                 y,
-                0.3 * v.linear.x,
-                0.3 * v.angular.z,
+                v.linear.x,
+                0,
                 # length_includes_head=True,
                 # width=0.005,
-                head_width=0.02,
-                label="Velocity",
+                head_width=0.01,
+                label="Linear",
             )
+        # if abs(v.angular.z) > 0:
+        #     ax.arrow(
+        #         x,
+        #         y,
+        #         x,
+        #         0.3 * v.angular.z,
+        #         # length_includes_head=True,
+        #         # width=0.005,
+        #         head_width=0.02,
+        #         label="Angular",
+        #     )
         row.append(v)
     velocities.append(row)
+v_5 = straight_to_point(Point(0.05, 0), zero)
+print(v_5.linear.x)
+# ax.arrow(0.05, 0, v.linear.x, 0)
 ax.plot(0, 0, "ro", label="Target")
 plt.legend()
 

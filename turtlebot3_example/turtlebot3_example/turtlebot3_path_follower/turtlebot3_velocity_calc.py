@@ -1,6 +1,7 @@
 """Velocity calculations for the Turtlebot Controller"""
 import numpy as np
-from geometry_msgs.msg import Twist
+
+# from geometry_msgs.msg import Twist
 
 
 class Point:
@@ -11,21 +12,21 @@ class Point:
 
 
 # Uncomment the below two classes for testing purposes, and comment out Twist import
-# class Pointz:
-#     def __init__(self, z=0.0):
-#         self.z = z
-#
-#
-# class Twist:
-#     def __init__(self, x=0.0, z=0.0):
-#         self.linear = Point(x, 0.0, 0.0)
-#         self.angular = Pointz(z)
+class Pointz:
+    def __init__(self, z=0.0):
+        self.z = z
+
+
+class Twist:
+    def __init__(self, x=0.0, z=0.0):
+        self.linear = Point(x, 0.0, 0.0)
+        self.angular = Pointz(z)
 
 
 def linear_velocity_calculation(distance):
     v = 0.0
-    if distance > 0.3:  # full speed ahead
-        v = 0.05
+    if distance > 1:  # full speed ahead
+        v = 0.1
     elif distance > 0.1:  # not yet at zero
         # divide the distance by 10 and round to lowest speed
         v = np.floor(distance * 10) / 100
